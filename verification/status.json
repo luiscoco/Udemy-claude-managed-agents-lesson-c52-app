@@ -1,0 +1,13 @@
+{
+  "lesson": "C52",
+  "title": "Review Panels and Agent Voting",
+  "path": "lesson-c52\\lesson-c52-app",
+  "port": 3052,
+  "scenarios": 3,
+  "state": "implemented and verified",
+  "liveScope": "text-only commentary about the local result",
+  "typecheck": true,
+  "localTests": true,
+  "browserSmoke": "passed: desktop, mobile, scenario controls, source view",
+  "liveCommentarySmoke": "passed: real text-only session reached end_turn"
+}
