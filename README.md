@@ -42,27 +42,78 @@ CLAUDE_MANAGED_ENVIRONMENT_ID=your_environment_id
 PORT=3052
 ```
 
-## How the application was developed
+## How the app was build
 
-The browser collects inputs; the Node host validates requests; the lesson implementation produces observable evidence. The architecture page walks through the real source with numbered steps, prerequisite configuration, source filenames and code excerpts.
+### 1. Validate vote values and proposal bindings
 
-### Lesson implementation
+Only approve, reject and abstain are supported. A supplied duplicate-identity or stale-proposal signal rejects the local panel before votes are counted.
 
-[src/lesson.ts](https://github.com/luiscoco/Udemy-claude-managed-agents-lesson-c52-app/blob/main/src/lesson.ts)
+Source: [src/lesson.ts](src/lesson.ts#L13) · selected statements
 
 ```typescript
-  async run(input) {
+const votes = list(input, "votes").map(String);
 
-const votes=list(input,"votes").map(String);if(votes.some(v=>!["approve","reject","abstain"].includes(v)))throw new Error("Unknown vote value");
-if(flag(input,"duplicateIdentity")||flag(input,"staleProposal"))return report("rejected","Duplicate producer or stale proposal binding",{},["Authenticate roster bindings","Reject conflicting vote identity and proposal hashes"]);
-const approvals=votes.filter(v=>v==="approve").length,rejections=votes.filter(v=>v==="reject").length,passed=votes.length===3&&approvals>=2&&rejections===0;
-return report(passed?"passed":"rejected",passed?"The local panel rule was met":"The local panel rule was not met",{approvals,rejections,abstentions:votes.filter(v=>v==="abstain").length,decisionScope:"recommendation only",deploymentAuthorized:false},["Freeze the roster and proposal","Count each producer once","Wait for all three votes","Keep required human review separate"]);
-
-  }
-};
+// ... other source statements omitted ...
+if (flag(input, "duplicateIdentity") || flag(input, "staleProposal"))
+  return report("rejected", "Duplicate producer or stale proposal binding", {}, [
+    "Authenticate roster bindings",
+    "Reject conflicting vote identity and proposal hashes",
+  ]);
 ```
 
-Read the architecture page for the remaining source excerpts and explanations, including input handling and optional provider behavior. The diagram describes this application, rather than implying that an external integration has been implemented.
+### 2. Apply the explicit panel rule
+
+The panel needs all three votes, at least two approvals and no rejection. The outcome is a recommendation with deploymentAuthorized:false; this is a local decision rule, not distributed consensus.
+
+Source: [src/lesson.ts](src/lesson.ts#L15) · selected statements
+
+```typescript
+const approvals = votes.filter((v) => v === "approve").length,
+  rejections = votes.filter((v) => v === "reject").length,
+  passed = votes.length === 3 && approvals >= 2 && rejections === 0;
+
+return report(
+  passed ? "passed" : "rejected",
+  passed ? "The local panel rule was met" : "The local panel rule was not met",
+  {
+    approvals,
+    rejections,
+    abstentions: votes.filter((v) => v === "abstain").length,
+    decisionScope: "recommendation only",
+    deploymentAuthorized: false,
+  },
+  [
+    "Freeze the roster and proposal",
+    "Count each producer once",
+    "Wait for all three votes",
+    "Keep required human review separate",
+  ],
+);
+```
+
+### Check your understanding
+
+Run **Two approvals and an abstention** in the application. Compare the result with these scenario expectations:
+
+```json
+{
+  "input": {
+    "votes": [
+      "approve",
+      "approve",
+      "abstain"
+    ],
+    "duplicateIdentity": false,
+    "staleProposal": false
+  },
+  "expectedOutcome": "passed",
+  "checkEvidence": {
+    "approvals": 2
+  }
+}
+```
+
+Then try **Reject a negative panel vote**. Its expected outcome is `rejected`; identify the condition or evidence field that explains the difference.
 
 ## Validation
 
